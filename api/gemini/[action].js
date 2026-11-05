@@ -23,6 +23,16 @@ export default async function handler(req, res) {
   const { action } = req.query;
   const body = req.body || {};
 
+  if (action === 'list-models') {
+    try {
+      const resModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const data = await resModels.json();
+      return res.status(200).json(data);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
   try {
     switch (action) {
       case 'tutor-chat': {
@@ -241,11 +251,43 @@ Devuelve EXCLUSIVAMENTE un JSON:
   }
 }
 
-async function callGemini(apiKey, systemInstruction, userPrompt, isJson = false) {
-  const models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
-  let lastError = null;
+let cachedModel = null;
 
-  for (const model of models) {
+async function getWorkingModel(apiKey) {
+  if (cachedModel) return cachedModel;
+  const preferred = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-pro'];
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (res.ok) {
+      const data = await res.json();
+      const available = (data.models || [])
+        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''));
+
+      for (const p of preferred) {
+        if (available.includes(p)) {
+          cachedModel = p;
+          return p;
+        }
+      }
+      if (available.length > 0) {
+        cachedModel = available[0];
+        return available[0];
+      }
+    }
+  } catch (e) {
+    console.warn('Could not query models list:', e);
+  }
+  return 'gemini-2.5-flash';
+}
+
+async function callGemini(apiKey, systemInstruction, userPrompt, isJson = false) {
+  const chosenModel = await getWorkingModel(apiKey);
+  const modelsToTry = [chosenModel, 'gemini-2.5-flash', 'gemini-2.5-pro'];
+  const uniqueModels = [...new Set(modelsToTry)];
+  const allErrors = [];
+
+  for (const model of uniqueModels) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -278,18 +320,20 @@ async function callGemini(apiKey, systemInstruction, userPrompt, isJson = false)
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Google API (${model}) respondió con código ${response.status}: ${errorText}`);
+        allErrors.push(`[${model}] HTTP ${response.status}: ${errorText.slice(0, 150)}`);
+        continue;
       }
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
+        cachedModel = model;
         return text;
       }
     } catch (err) {
-      lastError = err;
+      allErrors.push(`[${model}] Exception: ${err.message}`);
     }
   }
 
-  throw lastError || new Error('Google Gemini no devolvió contenido.');
+  throw new Error('Fallaron los modelos disponibles: ' + allErrors.join(' | '));
 }
