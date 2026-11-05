@@ -13,10 +13,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.APIGEMINI || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
   if (!apiKey) {
     return res.status(500).json({
-      error: 'GEMINI_API_KEY no configurada. Añade tu API Key gratuita en Settings > Environment Variables de Vercel.'
+      error: 'API Key no configurada. Añade GEMINI_API_KEY o APIGEMINI en Settings > Environment Variables de Vercel.'
     });
   }
 
@@ -226,45 +226,54 @@ Revisa la vigencia de la lista de leyes y devuelve EXCLUSIVAMENTE un JSON:
 }
 
 async function callGemini(apiKey, systemInstruction, userPrompt, isJson = false) {
-  const model = 'gemini-2.0-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+  let lastError = null;
 
-  const payload = {
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: userPrompt }]
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: userPrompt }]
+          }
+        ]
+      };
+
+      if (systemInstruction) {
+        payload.systemInstruction = {
+          parts: [{ text: systemInstruction }]
+        };
       }
-    ]
-  };
 
-  if (systemInstruction) {
-    payload.systemInstruction = {
-      parts: [{ text: systemInstruction }]
-    };
+      if (isJson) {
+        payload.generationConfig = {
+          responseMimeType: 'application/json'
+        };
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Google API (${model}) respondió con código ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return text;
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  if (isJson) {
-    payload.generationConfig = {
-      responseMimeType: 'application/json'
-    };
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Google API respondió con código ${response.status}: ${errorText}`);
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Google Gemini no devolvió contenido.');
-  }
-  return text;
+  throw lastError || new Error('Google Gemini no devolvió contenido.');
 }
