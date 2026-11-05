@@ -1,5 +1,5 @@
 // OpoGestión A2 service worker: offline-capable app shell + asset caching.
-const CACHE_NAME = 'opogestion-v1';
+const CACHE_NAME = 'opogestion-v3';
 const PRECACHE_URLS = ['/', '/index.html', '/manifest.json', '/icon.svg', '/racket-avatar.jpg', '/pdf.worker.min.mjs'];
 
 self.addEventListener('install', (event) => {
@@ -26,24 +26,21 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Never cache AI endpoints or other dynamic APIs
+  // Never cache AI endpoints, Drive proxy, or other dynamic APIs
   if (url.pathname.startsWith('/api/')) return;
 
-  // Hashed build assets and static files: cache first
+  // Static and hashed assets: network first to ensure latest updates, fallback to cache
   if (url.pathname.startsWith('/assets/') || url.pathname.includes('index-') || url.pathname.startsWith('/pdf.worker') || url.pathname.startsWith('/racket-avatar') || url.pathname.startsWith('/icon')) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            }
-            return response;
-          })
-          .catch(() => cached);
-      })
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
