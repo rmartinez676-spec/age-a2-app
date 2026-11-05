@@ -33,6 +33,26 @@ export default async function handler(req, res) {
     }
   }
 
+  if (action === 'test-models') {
+    const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+    const results = {};
+    for (const m of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+        const resTest = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Hola' }] }] })
+        });
+        const d = await resTest.json();
+        results[m] = resTest.status === 200 ? 'OK: ' + (d.candidates?.[0]?.content?.parts?.[0]?.text || '').slice(0, 50) : 'ERR: ' + JSON.stringify(d.error?.message || d);
+      } catch (e) {
+        results[m] = 'EXC: ' + e.message;
+      }
+    }
+    return res.status(200).json(results);
+  }
+
   try {
     switch (action) {
       case 'tutor-chat': {
@@ -255,7 +275,7 @@ let cachedModel = null;
 
 async function getWorkingModel(apiKey) {
   if (cachedModel) return cachedModel;
-  const preferred = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-pro'];
+  const preferred = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (res.ok) {
@@ -278,12 +298,12 @@ async function getWorkingModel(apiKey) {
   } catch (e) {
     console.warn('Could not query models list:', e);
   }
-  return 'gemini-2.5-flash';
+  return 'gemini-flash-latest';
 }
 
 async function callGemini(apiKey, systemInstruction, userPrompt, isJson = false) {
   const chosenModel = await getWorkingModel(apiKey);
-  const modelsToTry = [chosenModel, 'gemini-2.5-flash', 'gemini-2.5-pro'];
+  const modelsToTry = [chosenModel, 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash'];
   const uniqueModels = [...new Set(modelsToTry)];
   const allErrors = [];
 
