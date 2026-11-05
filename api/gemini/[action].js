@@ -28,11 +28,12 @@ export default async function handler(req, res) {
       case 'tutor-chat': {
         const tutorName = body.tutorName || 'Racket';
         const topic = body.currentTopicTitle ? `Tema actual: "${body.currentTopicTitle}". ` : '';
-        const summary = body.currentTopicSummary ? `Resumen: "${body.currentTopicSummary}". ` : '';
-        const laws = body.currentLaws && body.currentLaws.length ? `Leyes aplicables: ${body.currentLaws.join(', ')}. ` : '';
+        const summary = body.currentTopicSummary ? `Resumen del tema: "${body.currentTopicSummary}". ` : '';
+        const laws = body.currentLaws && body.currentLaws.length ? `Leyes clave aplicables: ${body.currentLaws.join(', ')}. ` : '';
 
         const system = `Eres ${tutorName}, tutora y preparadora de élite para las Oposiciones del Cuerpo de Gestión de la Administración Civil del Estado (Subgrupo A2 GACE) de España.
-Responde a las dudas del opositor de forma didáctica, rigurosa y motivadora, citando siempre los artículos y leyes oficiales españolas (CE 1978, Ley 39/2015, Ley 40/2015, TREBEP, LCSP 9/2017, LGP 47/2003, etc.).
+Tus respuestas deben ser rigurosas, didácticas y específicas de examen. Cita siempre la ley aplicable (Ley 39/2015, Ley 40/2015, TREBEP, LCSP 9/2017, LGP 47/2003, CE 1978, etc.) y los números exactos de artículo.
+Destaca siempre los plazos (días hábiles vs naturales), los órganos competentes, el silencio administrativo y los recursos procedentes. Motiva al opositor con rigor administrativo.
 ${topic}${summary}${laws}`;
 
         const reply = await callGemini(apiKey, system, body.userMessage || 'Hola');
@@ -40,13 +41,15 @@ ${topic}${summary}${laws}`;
       }
 
       case 'explain-concept': {
-        const system = `Eres un tribunal examinador y preparador de Gestión A2 del INAP. Explica con precisión jurídica la justificación de la respuesta correcta de la siguiente pregunta.`;
+        const system = `Eres un tribunal examinador y preparador de Gestión A2 del INAP. Explica con precisión jurídica la justificación de la respuesta correcta de la siguiente pregunta de examen.`;
         const prompt = `Pregunta: "${body.question}"
 Opciones: ${JSON.stringify(body.options)}
 Respuesta correcta (índice 0-3): ${body.correctAnswer}
 Referencia legal: ${body.concept || ''}
 
-Redacta una explicación clara, indicando el porqué de la opción correcta y citando el precepto legal exacto.`;
+Redacta una explicación técnica y didáctica:
+1. Justifica por qué la opción indicada es la legalmente correcta citando el precepto normativo exacto (artículo, apartado y ley).
+2. Explica brevemente por qué las otras opciones son incorrectas o trampas habituales del INAP.`;
 
         const explanation = await callGemini(apiKey, system, prompt);
         return res.status(200).json({ explanation });
@@ -54,9 +57,9 @@ Redacta una explicación clara, indicando el porqué de la opción correcta y ci
 
       case 'generate-questions': {
         const count = Math.min(Math.max(body.count || 5, 1), 30);
-        const system = `Eres un redactor experto de la Comisión Permanente de Selección (CPS) del INAP para las oposiciones del Cuerpo de Gestión del Estado (A2).
-Genera exactamente ${count} preguntas tipo test inéditas, oficiales y rigurosas.
-Devuelve EXCLUSIVAMENTE un objeto JSON con la clave "questions" conteniendo un array de objetos:
+        const system = `Eres un redactor experto de la Comisión Permanente de Selección (CPS) del INAP para el Cuerpo de Gestión del Estado (A2).
+Genera exactamente ${count} preguntas tipo test inéditas, oficiales y rigurosas basadas en la literalidad de la ley.
+Devuelve EXCLUSIVAMENTE un objeto JSON con la clave "questions" conteniendo un array:
 {
   "questions": [
     {
@@ -64,7 +67,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON con la clave "questions" conteniendo un a
       "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
       "correctAnswer": 0,
       "lawReference": "Art. XX de la Ley YY/ZZZZ",
-      "explanation": "Justificación jurídica detallada..."
+      "explanation": "Justificación jurídica detallada citando el artículo y aclarando la trampa..."
     }
   ]
 }`;
@@ -78,7 +81,7 @@ Dificultad: ${body.difficulty || 'Oficial INAP A2'}`;
       }
 
       case 'generate-flashcards': {
-        const system = `Eres un preparador de oposiciones A2. Genera tarjetas de memoria (flashcards) para repasar plazos, mayorías, órganos competentes y conceptos clave.
+        const system = `Eres un preparador de oposiciones A2. Genera tarjetas de memoria (flashcards) para repasar plazos críticos, mayorías, órganos competentes y conceptos de examen.
 Devuelve EXCLUSIVAMENTE un JSON:
 {
   "success": true,
@@ -86,9 +89,9 @@ Devuelve EXCLUSIVAMENTE un JSON:
     {
       "id": "card-1",
       "question": "Pregunta corta o concepto...",
-      "answer": "Respuesta clave...",
-      "legalBasis": "Referencia normativa...",
-      "category": "Plazos / Órganos / Definición"
+      "answer": "Respuesta clave directa...",
+      "legalBasis": "Referencia normativa (Ley y Art.)...",
+      "category": "Plazos / Órganos / Procedimiento / Contratación"
     }
   ]
 }`;
@@ -103,7 +106,7 @@ Leyes: ${JSON.stringify(body.laws || [])}`;
 
       case 'generate-case-study': {
         const system = `Eres preparador del Segundo Ejercicio (Caso Práctico) de Gestión de la Administración Civil del Estado (A2 GACE).
-Genera un supuesto práctico inédito de formato oficial INAP con un escenario complejo y 4-5 preguntas redactadas para dictamen.
+Genera un supuesto práctico inédito de formato oficial INAP con un escenario complejo de expediente administrativo/contractual/personal y 4-5 preguntas redactadas para dictamen jurídico.
 Devuelve EXCLUSIVAMENTE un JSON:
 {
   "success": true,
@@ -113,13 +116,13 @@ Devuelve EXCLUSIVAMENTE un JSON:
     "category": "${body.blockName || 'Derecho Administrativo'}",
     "estimatedTimeMinutes": 90,
     "difficulty": "Oficial INAP",
-    "scenario": "Descripción detallada de los hechos, fechas, importes, licitaciones o expedientes...",
+    "scenario": "Descripción detallada con fechas concretas, importes con y sin IVA, procedimiento, plazos y recursos...",
     "questions": [
       {
         "id": "q1",
-        "question": "Cuestión planteada...",
+        "question": "Cuestión jurídica planteada...",
         "maxScore": 2.5,
-        "criteria": "Criterios de valoración y artículos aplicables..."
+        "criteria": "Artículos aplicables de la LPAC, LCSP, TREBEP o LGP y doctrina aplicable..."
       }
     ]
   }
@@ -132,16 +135,16 @@ Devuelve EXCLUSIVAMENTE un JSON:
 
       case 'evaluate-case-study': {
         const system = `Eres miembro del Tribunal Calificador del Segundo Ejercicio de Gestión A2 del Estado.
-Evalúa con rigor técnico el dictamen presentado por el opositor.
+Evalúa con rigor técnico el dictamen presentado por el opositor, puntuando sobre 10 según los criterios oficiales del INAP.
 Devuelve EXCLUSIVAMENTE un JSON:
 {
   "success": true,
   "evaluation": {
     "score": 7.5,
-    "strengths": ["Puntos fuertes analizados..."],
-    "weaknesses": ["Errores u omisiones detectadas..."],
-    "suggestions": "Consejos para mejorar la nota ante el tribunal...",
-    "modelAnswer": "Respuesta modelo ideal que habría obtenido un 10..."
+    "strengths": ["Puntos fuertes y normas bien citadas..."],
+    "weaknesses": ["Errores jurídicos u omisiones de plazos/artículos..."],
+    "suggestions": "Consejos específicos para mejorar el dictamen ante el tribunal...",
+    "modelAnswer": "Respuesta modelo ideal redactada con estilo administrativo formal..."
   }
 }`;
         const prompt = `Supuesto: ${body.caseTitle}
@@ -157,23 +160,25 @@ ${body.userDraft}
       }
 
       case 'check-law-updates': {
-        const system = `Eres analista normativo del Boletín Oficial del Estado (BOE) para oposiciones de Gestión A2 en España.
-Analiza la vigencia y reformas de la norma consultada.
-Devuelve EXCLUSIVAMENTE un JSON:
+        const system = `Eres la tutora preparadora y analista jurídica del BOE para las Oposiciones de Gestión de la Administración Civil del Estado (A2).
+Analiza con máximo detalle y rigor la vigencia de la norma y las reformas legislativas que la han modificado recientemente (ej. Real Decreto-ley 6/2023, reformas de empleo público, contratación pública, paridad, etc.).
+Debes especificar los cambios normativos reales, los artículos afectados y cómo influyen en las preguntas del examen del INAP.
+
+Devuelve EXCLUSIVAMENTE un JSON con esta estructura exacta:
 {
   "success": true,
   "analysis": {
     "lawName": "${body.lawName}",
-    "hasUpdates": false,
-    "summary": "Resumen claro del estado de vigencia de la norma y su aplicación al temario de Gestión A2...",
+    "hasUpdates": true,
+    "summary": "Análisis técnico exhaustivo de la vigencia de la norma, detallando las reformas recientes y qué títulos o materias son prioritarias para el examen A2...",
     "recentReforms": [
       {
-        "normaModificadora": "Ej. Real Decreto-ley o Ley modificadora reciente",
-        "articulosAfectados": "Artículos clave modificados",
-        "impactoEnElTema": "Detalle sobre cómo afecta a las preguntas del examen oficial"
+        "normaModificadora": "Ej. Real Decreto-ley 6/2023 o norma correspondiente",
+        "articulosAfectados": "Artículos y materias específicas modificadas",
+        "impactoEnElTema": "Impacto directo en el examen: preguntas típicas, plazos modificados o posibles trampas del tribunal"
       }
     ],
-    "claraAdvice": "Consejo práctico y truco de examen para el opositor sobre los plazos y artículos más preguntados."
+    "claraAdvice": "Consejo directo de la preparadora sobre qué memorizar al detalle (plazos, competencias o recursos) de esta norma."
   }
 }`;
         const prompt = `Norma: ${body.lawName}. Tema: ${body.topicTitle || ''}`;
@@ -188,15 +193,26 @@ Devuelve EXCLUSIVAMENTE un JSON:
 
       case 'check-all-law-updates': {
         const laws = body.laws || [];
-        const system = `Eres analista normativo de oposiciones de Gestión del Estado A2 (INAP/BOE).
-Revisa la vigencia de la lista de leyes y devuelve EXCLUSIVAMENTE un JSON:
+        const system = `Eres un preparador y analista normativo de élite para las Oposiciones del Cuerpo de Gestión del Estado (A2 GACE).
+Tu misión es revisar la lista de leyes oficiales del temario y especificar con detalle si han sufrido modificaciones normativas recientes (ej. Real Decreto-ley 6/2023, reformas en función pública y TREBEP, reforma art. 49 CE, novedades en contratación pública LCSP, paridad, etc.).
+
+Para CADA norma de la lista:
+1. Si ha tenido reformas recientes relevantes para el examen A2:
+   - Marca "status": "revisar"
+   - En "summary": especifica la norma modificadora reciente (ej. RDL 6/2023), qué artículos o materias concretas se han modificado y la advertencia clave para el opositor.
+2. Si la norma está consolidada sin reformas de última hora:
+   - Marca "status": "al_dia"
+   - En "summary": especifica de forma técnica los artículos clave más preguntados por el tribunal del INAP (plazos esenciales, órganos competentes y recursos aplicables).
+NUNCA pongas textos genéricos como 'la norma está al día'. Aporta siempre detalles concretos (artículos y normas).
+
+Devuelve EXCLUSIVAMENTE un JSON:
 {
   "success": true,
   "results": [
     {
       "lawName": "Nombre exacto de la norma",
-      "status": "al_dia",
-      "summary": "Resumen conciso de su vigencia y aplicación al examen A2"
+      "status": "revisar",
+      "summary": "Detalle técnico de las modificaciones normativas o artículos clave para el examen..."
     }
   ]
 }`;
@@ -207,7 +223,7 @@ Revisa la vigencia de la lista de leyes y devuelve EXCLUSIVAMENTE un JSON:
           parsed.results = parsed.results.map(r => ({
             lawName: r.lawName,
             status: r.status === 'revisar' ? 'revisar' : 'al_dia',
-            summary: r.summary || 'Norma plenamente vigente y consolidada en el BOE.'
+            summary: r.summary || 'Norma plenamente vigente en el BOE y consolidada en el temario A2.'
           }));
         }
         return res.status(200).json(parsed);
