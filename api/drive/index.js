@@ -18,7 +18,8 @@ export default async function handler(req, res) {
       if (!streamRes.ok) {
         return res.redirect(302, `https://drive.google.com/uc?export=download&id=${id}`);
       }
-      res.setHeader('Content-Type', streamRes.headers.get('content-type') || 'application/pdf');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="tema.pdf"');
       const length = streamRes.headers.get('content-length');
       if (length) res.setHeader('Content-Length', length);
       res.setHeader('Cache-Control', 'public, max-age=86400');
