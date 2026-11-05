@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
 
   // Hashed build assets and static files: cache first
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/pdf.worker') || url.pathname.startsWith('/racket-avatar') || url.pathname.startsWith('/icon')) {
+  if (url.pathname.startsWith('/assets/') || url.pathname.includes('index-') || url.pathname.startsWith('/pdf.worker') || url.pathname.startsWith('/racket-avatar') || url.pathname.startsWith('/icon')) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

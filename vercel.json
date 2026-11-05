@@ -2,7 +2,11 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/assets/:match*",
+      "destination": "/:match*"
+    },
+    {
+      "source": "/((?!.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

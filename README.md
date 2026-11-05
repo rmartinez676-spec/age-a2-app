@@ -2,16 +2,19 @@
 
 Plataforma de preparación para las Oposiciones del Cuerpo de Gestión de la Administración Civil del Estado (A2).
 
-## Despliegue en Vercel
+## Cómo subirlo a GitHub y Vercel
 
-Este paquete contiene la versión de producción ya compilada (Single Page Application).
+Todos los archivos están ahora en la misma carpeta (sin subcarpetas complicadas) para que puedas seleccionarlos todos a la vez.
 
-### Pasos para desplegar:
-1. Sube el contenido de esta carpeta a tu repositorio de GitHub (asegúrate de que `index.html` quede en la raíz del repositorio, no dentro de una subcarpeta).
-2. En tu panel de **Vercel**, haz clic en **"Add New..."** > **"Project"**.
-3. Importa tu repositorio de GitHub.
-4. En la pantalla de configuración:
-   - **Framework Preset**: Selecciona `Other`.
-   - **Root Directory**: `./` (la raíz).
-   - **Build & Output Settings**: Déjalos por defecto (vacíos / sin comando de build).
-5. Haz clic en **Deploy**. ¡Listo en menos de 10 segundos!
+### Paso 1: Subir a GitHub
+1. Abre tu repositorio en GitHub.
+2. Pulsa en **Add file** -> **Upload files**.
+3. Selecciona **TODOS** los archivos de esta carpeta descomprimida (`Ctrl + A`).
+4. Haz clic en **Commit changes**.
+
+### Paso 2: Vercel
+Vercel detectará automáticamente el cambio y desplegará la web en pocos segundos.
+- Si es un nuevo proyecto en Vercel:
+  - Framework Preset: `Other`
+  - Root Directory: `./`
+  - Build Command: (vacío)
