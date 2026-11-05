@@ -1,6 +1,6 @@
 # OpoGestión A2 - Oposiciones Gestión de la Administración Civil del Estado
 
-Plataforma de preparación para las Oposiciones del Cuerpo de Gestión de la Administración Civil del Estado (A2).
+App de preparación para las Oposiciones del Cuerpo de Gestión de la Administración Civil del Estado (A2).
 
 ## Cómo subirlo a GitHub y Vercel
 
