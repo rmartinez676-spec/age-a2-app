@@ -1,5 +1,5 @@
 // OpoGestión A2 service worker: offline-capable app shell + asset caching.
-const CACHE_NAME = 'opogestion-v3';
+const CACHE_NAME = 'opogestion-v4';
 const PRECACHE_URLS = ['/', '/index.html', '/manifest.json', '/icon.svg', '/racket-avatar.jpg', '/pdf.worker.min.mjs'];
 
 self.addEventListener('install', (event) => {

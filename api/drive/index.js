@@ -10,22 +10,13 @@ export default async function handler(req, res) {
 
   const { action, id } = req.query;
 
-  // Stream a file from Google Drive (PDF, audio, presentation)
+  // Stream a file from Google Drive (PDF, audio, presentation, video)
+  // Direct redirect to Google Drive CDN handles large files (20MB-60MB), range requests (HTTP 206),
+  // and eliminates Vercel serverless function payload limits (4.5MB) and timeouts.
   if (action === 'file' && id) {
     try {
       const driveUrl = `https://drive.usercontent.google.com/download?id=${id}&export=download`;
-      const streamRes = await fetch(driveUrl);
-      if (!streamRes.ok) {
-        return res.redirect(302, `https://drive.google.com/uc?export=download&id=${id}`);
-      }
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename="tema.pdf"');
-      const length = streamRes.headers.get('content-length');
-      if (length) res.setHeader('Content-Length', length);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-
-      const buffer = await streamRes.arrayBuffer();
-      return res.status(200).send(Buffer.from(buffer));
+      return res.redirect(302, driveUrl);
     } catch (err) {
       console.error('Drive proxy error:', err);
       return res.redirect(302, `https://drive.google.com/uc?export=download&id=${id}`);
@@ -64,7 +55,7 @@ async function getFolderFiles(folderId) {
     });
     if (!response.ok) return [];
     const html = await response.text();
-    const matches = [...html.matchAll(/\[\[null,"([a-zA-Z0-9_\-]+)"],null,null,null,"([^"]+)"[\s\S]*?\[\[\["([^"]+)",null,1]]]/g)];
+    const matches = [...html.matchAll(/\[\[null,"([a-zA-Z0-9_\\-]+)"],null,null,null,"([^"]+)"[\s\S]*?\[\[\["([^"]+)",null,1]]]/g)];
     return matches.map(m => ({ id: m[1], mimeType: m[2], name: m[3] }));
   } catch {
     return [];
