@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     B6: { id: '12-VAdYd2iyzF_SX7gIDRhQku3eHmgPSX', name: 'Bloque VI' },
     audios: { id: '1JxXeLRo7JvkPUNsB2DJNiIn0FNgFd2R7', name: 'AUDIOS' },
     videos: { id: '1pQYySi2ly8X6vN1aFQnT2npvi-01yjyl', name: 'VIDEOS' },
-    powerpoints: { id: '1yaImtGlPOu734-JmvwHHITAfV0FTCNkI', name: 'POWERPOINTS' }
+    powerpoints: { id: '1yaImtGlPOu734-JmvwHHITAfV0FTCNkI', name: 'POWERPOINTS' },
+    examenes: { id: '1kM2bAHjXYKGW_LWt-PaW_m9ZeDpUKnhp', name: 'EXAMENES ANTERIORES AGE' }
   };
 
   try {
